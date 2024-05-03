@@ -12,7 +12,7 @@ DEFAULT_TERM_STR = (
     "Write each line as as follows:\nTerm: <term> Definition: <definition>"
 )
 
-st.title("🦙 Llama Index Term Extractor 🦙")
+st.title("Term Extractor Using 🦙")
 
 setup_tab, upload_tab = st.tabs(["Setup", "Upload/Extract Terms"])
 
@@ -30,9 +30,7 @@ with setup_tab:
         value=DEFAULT_TERM_STR,
     )
 
-def extract_terms(
-    documents, term_extract_str, llm_name, model_temperature, api_key
-):
+def extract_terms(documents, term_extract_str, llm_name, model_temperature, api_key):
     llm = get_llm(llm_name, model_temperature, api_key, max_tokens=1024)
 
     temp_index = SummaryIndex.from_documents(
