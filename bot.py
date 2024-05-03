@@ -1,5 +1,9 @@
 import os
 import streamlit as st
+from llama_index.core import Document, SummaryIndex, load_index_from_storage
+from llama_index.llms.openai import OpenAI
+from llama_index.core import Settings
+
 
 DEFAULT_TERM_STR = (
     "Make a list of terms and definitions that are defined in the context, "
@@ -26,10 +30,59 @@ with setup_tab:
         value=DEFAULT_TERM_STR,
     )
 
+def extract_terms(
+    documents, term_extract_str, llm_name, model_temperature, api_key
+):
+    llm = get_llm(llm_name, model_temperature, api_key, max_tokens=1024)
+
+    temp_index = SummaryIndex.from_documents(
+        documents,
+    )
+    query_engine = temp_index.as_query_engine(
+        response_mode="tree_summarize", llm=llm
+    )
+    terms_definitions = str(query_engine.query(term_extract_str))
+    terms_definitions = [
+        x
+        for x in terms_definitions.split("\n")
+        if x and "Term:" in x and "Definition:" in x
+    ]
+    # parse the text into a dict
+    terms_to_definition = {
+        x.split("Definition:")[0]
+        .split("Term:")[-1]
+        .strip(): x.split("Definition:")[-1]
+        .strip()
+        for x in terms_definitions
+    }
+    return terms_to_definition
+
+
+
+
+
+
+
 with upload_tab:
     st.subheader("Extract and Query Definitions")
     document_text = st.text_area("Or enter raw text")
     if st.button("Extract Terms and Definitions") and document_text:
         with st.spinner("Extracting..."):
-            extracted_terms = document_text  # this is a placeholder!
+            extracted_terms = extract_terms(
+                [Document(text=document_text)],
+                term_extract_str,
+                llm_name,
+                model_temperature,
+                api_key,
+            )
         st.write(extracted_terms)
+        
+        
+        
+def get_llm(llm_name, model_temperature, api_key, max_tokens=256):
+    os.environ["OPENAI_API_KEY"] = api_key
+    return OpenAI(
+        temperature=model_temperature, model=llm_name, max_tokens=max_tokens
+    )
+
+
